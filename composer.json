@@ -1,0 +1,53 @@
+{
+  "name": "olifanton/interop",
+  "description": "Olifanton interop library",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://github.com/olifanton/interop",
+  "keywords": [
+    "ton",
+    "blockchain",
+    "the open network",
+    "boc",
+    "bag of cells",
+    "address",
+    "coins",
+    "olifanton"
+  ],
+  "autoload": {
+    "psr-4": {
+      "Olifanton\\Interop\\": "src/Olifanton/Interop/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Olifanton\\Interop\\Tests\\": "tests/Olifanton/Interop/Tests"
+    }
+  },
+  "authors": [
+    {
+      "name": "Roman Zaycev",
+      "email": "box@romanzaycev.ru",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "ext-mbstring": "*",
+    "olifanton/typed-arrays": "^1",
+    "myclabs/deep-copy": "^1.11",
+    "brick/math": "^0.10"
+  },
+  "suggest": {
+    "ext-bcmath": "*",
+    "ext-sodium": "*",
+    "ext-hash": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5"
+  },
+  "scripts": {
+    "test": "XDEBUG_MODE=coverage phpunit",
+    "test:cr": "XDEBUG_MODE=coverage phpunit --coverage-html build"
+  }
+}
