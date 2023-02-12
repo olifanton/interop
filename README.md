@@ -6,7 +6,7 @@ Olifanton Interop library
 [![Latest Stable Version](https://poser.pugx.org/olifanton/interop/v/stable)](https://packagist.org/packages/olifanton/interop)
 [![Total Downloads](https://poser.pugx.org/olifanton/interop/downloads)](https://packagist.org/packages/olifanton/interop)
 
-<!--
+
 ## Installation
 
 ```bash
@@ -32,7 +32,7 @@ use Olifanton\Interop\Boc\Cell;
 ```
 
 ---
--->
+
 ## Tests
 
 ```bash
