@@ -106,7 +106,7 @@ class Bytes
         }
 
         if ($buf === null) {
-            throw new InvalidArgumentException("Unsupported size: ${size}");
+            throw new InvalidArgumentException("Unsupported size: $size");
         }
 
         for ($i = 0, $strLen = strlen($str); $i < $strLen; $i++) {
