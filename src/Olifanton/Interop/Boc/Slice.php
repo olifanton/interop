@@ -4,6 +4,7 @@ namespace Olifanton\Interop\Boc;
 
 use Brick\Math\BigInteger;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
+use Olifanton\Interop\Boc\Exceptions\HashmapException;
 use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\TypedArrays\Uint8Array;
 use Olifanton\Interop\Address;
@@ -11,6 +12,8 @@ use Olifanton\Interop\Bytes;
 
 /**
  * Slice of Cell
+ *
+ * @phpstan-type BitLike 0|1|bool
  */
 class Slice
 {
@@ -18,16 +21,38 @@ class Slice
 
     private int $refCursor = 0;
 
+    private int $usedBits;
+
     /**
-     * @param Slice[] $refs
+     * @param int $length Length in bits
+     * @param Cell[] $refs
      */
-    public function __construct(private readonly Uint8Array $array, private readonly int $length, private readonly array $refs)
+    public function __construct(
+        private readonly Uint8Array $array,
+        private readonly int $length,
+        private readonly array $refs,
+        ?int $usedBits = null,
+    )
     {
+        $this->usedBits = $usedBits ?? Cell::SIZE;
     }
 
     public function getFreeBits(): int
     {
         return $this->length - $this->readCursor;
+    }
+
+    public function getUsedBits(): int
+    {
+        return $this->usedBits - $this->readCursor;
+    }
+
+    /**
+     * @return Cell[]
+     */
+    public function getRefs(): array
+    {
+        return $this->refs;
     }
 
     /**
@@ -68,9 +93,11 @@ class Slice
             for ($i = 0; $i < $bitLength; $i++) {
                 $result->writeBit($this->loadBit());
             }
+        // @codeCoverageIgnoreStart
         } catch (BitStringException $e) {
             throw new SliceException($e->getMessage(), $e->getCode(), $e);
         }
+        // @codeCoverageIgnoreEnd
 
         return $result->getImmutableArray();
     }
@@ -83,7 +110,7 @@ class Slice
     public function loadUint(int $bitLength): BigInteger
     {
         if ($bitLength < 1) {
-            throw new SliceException("Incorrect bitLength");
+            throw new SliceException("Incorrect bitLength: $bitLength");
         }
 
         $s = "";
@@ -103,7 +130,7 @@ class Slice
     public function loadInt(int $bitLength): BigInteger
     {
         if ($bitLength < 1) {
-            throw new SliceException("Incorrect bitLength");
+            throw new SliceException("Incorrect bitLength: $bitLength");
         }
 
         $sign = $this->loadBit();
@@ -151,16 +178,21 @@ class Slice
     public function loadAddress(): ?Address
     {
         $b = $this->loadUint(2);
+
         if ($b->isZero()) {
             return Address::NONE;
         }
 
         if ($b->toInt() !== 2) {
+            // @codeCoverageIgnoreStart
             throw new SliceException("Unsupported address type");
+            // @codeCoverageIgnoreEnd
         }
 
         if ($this->loadBit()) {
+            // @codeCoverageIgnoreStart
             throw new SliceException("Unsupported address type");
+            // @codeCoverageIgnoreEnd
         }
 
         $wc = $this->loadInt(8)->toInt();
@@ -172,10 +204,12 @@ class Slice
     /**
      * @throws SliceException
      */
-    public function loadRef(): Slice
+    public function loadRef(): Cell
     {
         if ($this->refCursor >= 4) {
+            // @codeCoverageIgnoreStart
             throw new SliceException("Refs overflow");
+            // @codeCoverageIgnoreEnd
         }
 
         $result = $this->refs[$this->refCursor];
@@ -187,10 +221,90 @@ class Slice
     /**
      * @throws SliceException
      */
+    public function loadString(?int $bytes = null): string
+    {
+        $bytes = $bytes === null
+            ? $this->loadBits($this->length)
+            : $this->loadBits($bytes);
+
+        return trim(Bytes::arrayToBytes($bytes), "\0");
+    }
+
+    /**
+     * @throws BitStringException
+     * @throws HashmapException
+     * @throws SliceException
+     */
+    public function loadDict(int $keySize, ?DictSerializers $serializers = null): HashmapE
+    {
+        $dictConstructor = $this->loadBit();
+        $isEmpty = !$dictConstructor;
+
+        return !$isEmpty
+            ? HashmapE::parse(
+                $keySize,
+                (new Builder())->writeBit($dictConstructor)->writeRef($this->loadRef())->cell(),
+            )
+            : new HashmapE($keySize, $serializers);
+    }
+
+    public function skipRefs(): self
+    {
+        $this->refCursor++;
+
+        return $this;
+    }
+
+    public function skipBits(int $skipBits): self
+    {
+        $this->readCursor += $skipBits;
+
+        return $this;
+    }
+
+    public function skipDict(): self
+    {
+        $isEmpty = !$this->loadBit();
+
+        return !$isEmpty ? $this->skipRefs(1) : $this;
+    }
+
+    public function getRefsCount(): int
+    {
+        return count($this->refs);
+    }
+
+    /**
+     * @return BitLike[]
+     * @throws SliceException
+     */
+    public function remainingBits(): array
+    {
+        $result = [];
+        $i = $this->readCursor;
+
+        while ($this->inRange($i)) {
+            $result[] = $this->get($i);
+            $i++;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @throws SliceException
+     */
     private function checkRange(int $n): void
     {
-        if ($n > $this->length) {
+        if (!$this->inRange($n)) {
+            // @codeCoverageIgnoreStart
             throw new SliceException("BitString overflow");
+            // @codeCoverageIgnoreEnd
         }
+    }
+
+    private function inRange(int $n): bool
+    {
+        return !($n >= $this->length);
     }
 }

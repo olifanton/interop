@@ -16,6 +16,8 @@ use Olifanton\TypedArrays\Uint8Array;
  * Internally, BitString uses implementation of `Uint8Array` provided by `olifanton/typed-arrays` package and is used as the base type for transferring binary data between parts of the Olifanton libraries.
  *
  * The BitString instance is created with a strictly fixed length. `write%` (writeBit, writeUint, ...) methods move the internal cursor. If you try to write a value that exceeds the length of the free bits, `BitStringException` exception will be thrown.
+ *
+ * @phpstan-type BitLike 0|1|bool
  */
 class BitString implements \Stringable
 {
@@ -36,6 +38,11 @@ class BitString implements \Stringable
             self::getUint8ArrayLength($length),
             0
         ));
+    }
+
+    public static function empty(): self
+    {
+        return new self(Cell::SIZE);
     }
 
     /**
@@ -122,8 +129,18 @@ class BitString implements \Stringable
     }
 
     /**
+     * @return BitLike[]
+     * @throws BitStringException
+     */
+    public function toBitsA(): array
+    {
+        return iterator_to_array($this->iterate());
+    }
+
+    /**
      * Writes bit and increase BitString internal cursor.
      *
+     * @param BitLike|int|bool $b
      * @throws BitStringException
      */
     public function writeBit(int | bool $b): self
@@ -146,7 +163,7 @@ class BitString implements \Stringable
     /**
      * Writes array of bits.
      *
-     * @param array<int | bool> $ba
+     * @param BitLike[]|array<0|1|bool> $ba
      * @throws BitStringException
      */
     public function writeBitArray(array $ba): self

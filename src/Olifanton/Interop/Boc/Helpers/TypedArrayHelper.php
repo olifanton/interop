@@ -5,7 +5,7 @@ namespace Olifanton\Interop\Boc\Helpers;
 use Olifanton\Interop\Bytes;
 use Olifanton\TypedArrays\Uint8Array;
 
-final class ArrayHelper
+final class TypedArrayHelper
 {
     /**
      * Returns slice (new instance of Uint8Array) of $arr.

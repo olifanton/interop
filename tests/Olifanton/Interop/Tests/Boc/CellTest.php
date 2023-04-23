@@ -92,6 +92,70 @@ class CellTest extends TestCase
     }
 
     /**
+     * @throws \Throwable
+     */
+    public function testComplexFromBoc(): void
+    {
+        $boc = 'te6cckEBEwEAVwACASABAgIC2QMEAgm3///wYBESAgEgBQYCAWIODwIBIAcIAgHODQ0CAdQNDQIBIAkKAgEgCxACASAQDAABWAIBIA0NAAEgAgEgEBAAAdQAAUgAAfwAAdwXk+eF';
+        $cell = Cell::oneFromBoc($boc, isBase64: true);
+        $slice = $cell->beginParse();
+
+        $this->assertEquals(
+            'cc548d561d922b9f14b40e4e90f97d52c20b0564378511a9eae1b0472f53f0fe',
+            Bytes::bytesToHexString($cell->hash()),
+        );
+        $this->assertCount(2, $cell->refs);
+        $this->assertEquals(
+            <<<FIFT_PRINT
+            x{2_}
+             x{D9}
+              x{2_}
+               x{2_}
+                x{D4_}
+                 x{2_}
+                 x{2_}
+                x{2_}
+                 x{2_}
+                  x{5}
+                  x{4}
+                 x{2_}
+                  x{4}
+                  x{2_}
+                   x{2_}
+                   x{2_}
+               x{CE_}
+                x{2_}
+                x{2_}
+              x{62_}
+               x{2_}
+                x{4}
+                x{4}
+               x{D4_}
+             x{B7FFFFF06_}
+              x{FC_}
+              x{DC_}
+            FIFT_PRINT,
+            trim($cell->print()),
+        );
+
+        $this->assertFalse($slice->loadBit());
+        $this->assertFalse($slice->loadBit());
+
+        $ref0 = $slice->loadRef()->beginParse();
+
+        $this->assertTrue($ref0->loadBit());
+        $this->assertTrue($ref0->loadBit());
+        $this->assertFalse($ref0->loadBit());
+        $this->assertTrue($ref0->loadBit());
+        $this->assertTrue($ref0->loadBit());
+        $this->assertFalse($ref0->loadBit());
+        $this->assertFalse($ref0->loadBit());
+        $this->assertTrue($ref0->loadBit());
+
+        $this->assertEquals(2, $ref0->getRefsCount());
+    }
+
+    /**
      * @throws CellException|BitStringException
      */
     public function testWithWriteCell(): void
@@ -198,7 +262,7 @@ class CellTest extends TestCase
         $this->assertEquals("0", $int64A->toBase(10));
         $this->assertEquals("0", $int64B->toBase(10));
 
-        $ref0 = $slice->loadRef();
+        $ref0 = $slice->loadRef()->beginParse();
 
         $coins0_0 = $ref0->loadCoins();
         $coins0_1 = $ref0->loadCoins();
@@ -210,7 +274,7 @@ class CellTest extends TestCase
         $this->assertEquals("100000000", $coins0_2->toBase(10));
         $this->assertEquals("1000000000", $coins0_3->toBase(10));
 
-        $ref1 = $slice->loadRef();
+        $ref1 = $slice->loadRef()->beginParse();
 
         $coins1_0 = $ref1->loadCoins();
         $coins1_1 = $ref1->loadCoins();

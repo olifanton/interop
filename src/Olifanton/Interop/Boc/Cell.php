@@ -5,7 +5,7 @@ namespace Olifanton\Interop\Boc;
 use JetBrains\PhpStorm\ArrayShape;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
-use Olifanton\Interop\Boc\Helpers\ArrayHelper;
+use Olifanton\Interop\Boc\Helpers\TypedArrayHelper;
 use Olifanton\Interop\Boc\Helpers\BocMagicPrefix;
 use Olifanton\Interop\Bytes;
 use Olifanton\Interop\Checksum;
@@ -20,10 +20,12 @@ use function DeepCopy\deep_copy;
  * `Cell` is a class that implements the concept of [TVM Cells](https://ton.org/docs/learn/overviews/Cells) in PHP. To create new and process received messages from the blockchain, you will work with instances of the Cell class.
  *
  * @property-read BitString $bits
- * @property \ArrayObject $refs
+ * @property \ArrayObject<Cell> $refs
  */
 class Cell
 {
+    public const SIZE = 1023;
+
     private BitString $bits;
 
     /**
@@ -68,7 +70,7 @@ class Cell
 
     public function __construct()
     {
-        $this->bits = new BitString(1023);
+        $this->bits = new BitString(self::SIZE);
         $this->_refs = new \ArrayObject();
     }
 
@@ -220,9 +222,11 @@ class Cell
     {
         try {
             return Crypto::sha256($this->getRepr());
+        // @codeCoverageIgnoreStart
         } catch (CryptoException $e) {
             throw new CellException("SHA256 digest error: " . $e->getMessage(), $e->getCode(), $e);
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -292,7 +296,7 @@ class Cell
         $offset_bits = strlen(decbin($full_size));
         $offset_bytes = max((int)ceil($offset_bits / 8), 1);
 
-        $serialization = new BitString((1023 + 32 * 4 + 32 * 3) * count($topologicalOrder));
+        $serialization = new BitString((self::SIZE + 32 * 4 + 32 * 3) * count($topologicalOrder));
 
         try {
             $serialization->writeBytes(BocMagicPrefix::reachBocMagicPrefix());
@@ -331,11 +335,17 @@ class Cell
         }
     }
 
+    /**
+     * @throws CellException
+     */
     public function beginParse(): Slice
     {
-        $refs = array_map(fn (Cell $ref) => $ref->beginParse(), $this->refs->getArrayCopy());
-
-        return new Slice($this->bits->getImmutableArray(), $this->bits->getLength(), $refs);
+        return new Slice(
+            $this->bits->getImmutableArray(),
+            $this->bits->getLength(),
+            array_map(fn (Cell $ref) => (new Builder())->writeCell($ref)->cell(), $this->refs->getArrayCopy()),
+            $this->bits->getUsedBits(),
+        );
     }
 
     public function __get(string $name)
@@ -348,7 +358,7 @@ class Cell
             return $this->getRefs();
         }
 
-        throw new \InvalidArgumentException("Unknown property \"${name}\"");
+        throw new \InvalidArgumentException("Unknown property \"$name\"");
     }
 
     private function getMaxDepthAsArray(): Uint8Array
@@ -742,7 +752,7 @@ class Cell
 
     private static function slice(Uint8Array $array, int $start, ?int $end = null): Uint8Array
     {
-        return ArrayHelper::sliceUint8Array($array, $start, $end);
+        return TypedArrayHelper::sliceUint8Array($array, $start, $end);
     }
 
     private static function isHexString(string $hexString): bool

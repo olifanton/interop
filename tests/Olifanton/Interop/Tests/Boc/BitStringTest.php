@@ -8,7 +8,6 @@ use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Bytes;
 use Olifanton\Interop\Units;
-use Olifanton\TypedArrays\ArrayBuffer;
 use Olifanton\TypedArrays\Uint8Array;
 use PHPUnit\Framework\TestCase;
 
@@ -423,5 +422,16 @@ class BitStringTest extends TestCase
         $bs->setTopUppedArray($ui8, false);
 
         $this->assertEquals("000100FF0A_", (string)$bs);
+    }
+
+    /**
+     * @throws BitStringException
+     */
+    public function testToBitsA(): void
+    {
+        $this->assertEquals(
+            [1, 0],
+            BitString::empty()->writeBit(1)->writeBit(0)->toBitsA(),
+        );
     }
 }

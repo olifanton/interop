@@ -3,6 +3,7 @@
 namespace Olifanton\Interop\Tests\Boc;
 
 use Brick\Math\BigInteger;
+use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Slice;
 use Olifanton\Interop\Tests\Stubs\CellFactory;
@@ -43,5 +44,59 @@ class SliceTest extends TestCase
     {
         $slice = $this->getInstance(CellFactory::getCellWithInt(-1, 1));
         $this->assertEquals(BigInteger::of(-1), $slice->loadInt(1));
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testSkipBits(): void
+    {
+        $slice = $this->getInstance(CellFactory::getCellWithInt(-1, 1));
+        $slice->skipBits(2);
+        $this->assertFalse($slice->loadBit());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testGetRefsCount(): void
+    {
+        $cell = CellFactory::getCellWithInt(-1, 1);
+        $cell->refs[] = CellFactory::getCellWithInt(-1, 1);
+
+        $slice = $this->getInstance($cell);
+        $this->assertEquals(1, $slice->getRefsCount());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testLoadString(): void
+    {
+        $str = "Lorem ipsum dolor sit amet consectetur adipisicing elit 😃😃😄😇🤪🤪🙁😤😨👏☝️👍👨‍👩";
+        $slice = (new Builder())->writeString($str)->cell()->beginParse();
+
+        $this
+            ->assertEquals(
+                $str,
+                $slice->loadString(),
+            );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testLoadStringSize(): void
+    {
+        $str = "Lorem ipsum dolor sit amet";
+        $slice = (new Builder())->writeString($str)->writeBit(1)->cell()->beginParse();
+
+        $this
+            ->assertEquals(
+                $str,
+                $slice->loadString(26 * 8),
+            );
+        $this
+            ->assertEquals(1, $slice->loadBit());
     }
 }
