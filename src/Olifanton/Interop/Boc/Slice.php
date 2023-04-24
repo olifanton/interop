@@ -71,6 +71,7 @@ class Slice
      *
      * @return bool
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadBit(): bool
     {
@@ -84,6 +85,7 @@ class Slice
      * Reads bit array
      *
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadBits(int $bitLength): Uint8Array
     {
@@ -106,6 +108,7 @@ class Slice
      * Reads unsigned integer
      *
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadUint(int $bitLength): BigInteger
     {
@@ -126,6 +129,7 @@ class Slice
      * Reads signed integer
      *
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadInt(int $bitLength): BigInteger
     {
@@ -152,6 +156,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadVarUint(int $bitLength): BigInteger
     {
@@ -166,6 +171,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadCoins(): BigInteger
     {
@@ -174,6 +180,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadAddress(): ?Address
     {
@@ -203,6 +210,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadRef(): Cell
     {
@@ -226,6 +234,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadString(?int $bytes = null): string
     {
@@ -240,6 +249,7 @@ class Slice
      * @throws BitStringException
      * @throws HashmapException
      * @throws SliceException
+     * @phpstan-impure
      */
     public function loadDict(int $keySize, ?DictSerializers $serializers = null): HashmapE
     {
@@ -254,6 +264,9 @@ class Slice
             : new HashmapE($keySize, $serializers);
     }
 
+    /**
+     * @phpstan-impure
+     */
     public function skipRef(): self
     {
         $this->refCursor++;
@@ -261,6 +274,9 @@ class Slice
         return $this;
     }
 
+    /**
+     * @phpstan-impure
+     */
     public function skipBits(int $skipBits): self
     {
         $this->readCursor += $skipBits;
@@ -270,6 +286,7 @@ class Slice
 
     /**
      * @throws SliceException
+     * @phpstan-impure
      */
     public function skipDict(): self
     {

@@ -2,6 +2,7 @@
 
 namespace Olifanton\Interop;
 
+use Brick\Math\BigDecimal;
 use Brick\Math\BigInteger;
 use Brick\Math\BigNumber;
 use InvalidArgumentException;
@@ -46,7 +47,7 @@ class Units
      */
     public static final function toNano(BigNumber|string|int|float $amount): BigInteger
     {
-        return self::toWei(BigNumber::of($amount), 'gwei')->toBigInteger();
+        return self::toWei(BigDecimal::of($amount), 'gwei')->toBigInteger();
     }
 
     /**
@@ -57,7 +58,7 @@ class Units
         return self::fromWei(BigNumber::of($amount)->toScale(9), 'gwei');
     }
 
-    private static function toWei(BigNumber $bn, string $unit): BigNumber
+    private static function toWei(BigDecimal $bn, string $unit): BigNumber
     {
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
@@ -66,7 +67,7 @@ class Units
         return $bn->multipliedBy(BigNumber::of(self::UNITS[$unit]));
     }
 
-    private static function fromWei(BigNumber $bn, string $unit): BigNumber
+    private static function fromWei(BigDecimal $bn, string $unit): BigNumber
     {
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('fromWei doesn\'t support ' . $unit . ' unit.');
@@ -83,18 +84,18 @@ class Units
         $isDrop = true;
         $dropZeroCount = array_reduce(
             array_reverse(str_split($strValue)),
-            static function (int $carry, string $n) use (&$isDrop) {
+            static function (int $curry, string $n) use (&$isDrop) {
                 if ($isDrop) {
                     if ($n !== "0") {
                         $isDrop = false;
 
-                        return $carry;
+                        return $curry;
                     }
 
-                    return $carry + 1;
+                    return $curry + 1;
                 }
 
-                return $carry;
+                return $curry;
             },
             0
         );

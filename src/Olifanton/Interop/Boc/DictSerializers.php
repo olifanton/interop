@@ -312,8 +312,8 @@ class DictSerializers
     }
 
     /**
-     * @param KDeserializerCallback $valueDeserializer
-     * @phpstan-param  KDeserializerCallback $valueDeserializer
+     * @param VDeserializerCallback $valueDeserializer
+     * @phpstan-param  VDeserializerCallback $valueDeserializer
      */
     public final function setValueDeserializer(callable $valueDeserializer): void
     {

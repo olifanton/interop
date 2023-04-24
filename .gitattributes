@@ -5,3 +5,5 @@
 /phpunit.xml        export-ignore
 /tests              export-ignore
 /build              export-ignore
+/.phplint.yml       export-ignore
+/phpstan.neon       export-ignore

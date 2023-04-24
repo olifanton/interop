@@ -1,0 +1,10 @@
+parameters:
+  reportUnmatchedIgnoredErrors: false
+  level: 4
+  paths:
+    - src
+    - tests
+  tmpDir: build
+  ignoreErrors:
+    - message: '#Access to an undefined property Olifanton\\TypedArrays\\Uint8Array::\$length#'
+    - message: '#Access to protected property Olifanton\\TypedArrays\\Uint8Array::\$buffer#'

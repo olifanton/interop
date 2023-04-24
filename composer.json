@@ -44,10 +44,29 @@
     "ext-hash": "*"
   },
   "require-dev": {
+    "jetbrains/phpstorm-attributes": "^1.0",
+    "overtrue/phplint": "^9.0",
+    "phpstan/phpstan": "^1.10",
     "phpunit/phpunit": "^9.5"
   },
   "scripts": {
     "test": "XDEBUG_MODE=coverage phpunit",
-    "test:cr": "XDEBUG_MODE=coverage phpunit --coverage-html build"
+    "test:cr": "XDEBUG_MODE=coverage phpunit --coverage-html build",
+    "phplint": "phplint -c .phplint.yml",
+    "phpstan": "XDEBUG_MODE=off phpstan analyse -c phpstan.neon --ansi --xdebug",
+    "checks": [
+      "@phplint",
+      "@phpstan",
+      "@test:cr"
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "platform": {
+      "php": "8.1"
+    }
   }
 }

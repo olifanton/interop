@@ -36,7 +36,7 @@ class Cell
     /**
      * @var int[]
      */
-    private array $refs_r = [];
+    private array $refs_r = []; // @phpstan-ignore-line
 
     private bool $isExotic = false;
 
