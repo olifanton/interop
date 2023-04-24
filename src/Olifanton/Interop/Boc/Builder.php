@@ -178,7 +178,7 @@ class Builder
     public function writeSlice(Slice $slice): self
     {
         try {
-            $this->writeBitArray(array_slice($slice->remainingBits(), 0, $slice->getUsedBits()));
+            $this->writeBitArray(array_slice($slice->getRemainingBits(), 0, $slice->getUsedBits()));
         } catch (BitStringException $e) {
             throw new SliceException($e->getMessage(), $e->getCode(), $e);
         }

@@ -526,7 +526,7 @@ class Hashmap implements IteratorAggregate
     {
         try {
             $length = ArrayHelper::arraySearch(
-                $edge->remainingBits(),
+                $edge->getRemainingBits(),
                 static function (bool $bit) {
                     return !$bit;
                 }

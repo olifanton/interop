@@ -212,6 +212,12 @@ class Slice
             // @codeCoverageIgnoreEnd
         }
 
+        if (!isset($this->refs[$this->refCursor])) {
+            // @codeCoverageIgnoreStart
+            throw new SliceException("Not found ref");
+            // @codeCoverageIgnoreEnd
+        }
+
         $result = $this->refs[$this->refCursor];
         $this->refCursor++;
 
@@ -238,17 +244,17 @@ class Slice
     public function loadDict(int $keySize, ?DictSerializers $serializers = null): HashmapE
     {
         $dictConstructor = $this->loadBit();
-        $isEmpty = !$dictConstructor;
 
-        return !$isEmpty
+        return $dictConstructor
             ? HashmapE::parse(
                 $keySize,
-                (new Builder())->writeBit($dictConstructor)->writeRef($this->loadRef())->cell(),
+                (new Builder())->writeBit(true)->writeRef($this->loadRef())->cell(),
+                $serializers,
             )
             : new HashmapE($keySize, $serializers);
     }
 
-    public function skipRefs(): self
+    public function skipRef(): self
     {
         $this->refCursor++;
 
@@ -262,11 +268,14 @@ class Slice
         return $this;
     }
 
+    /**
+     * @throws SliceException
+     */
     public function skipDict(): self
     {
         $isEmpty = !$this->loadBit();
 
-        return !$isEmpty ? $this->skipRefs(1) : $this;
+        return !$isEmpty ? $this->skipRef() : $this;
     }
 
     public function getRefsCount(): int
@@ -274,11 +283,16 @@ class Slice
         return count($this->refs);
     }
 
+    public function getRemainingRefsCount(): int
+    {
+        return $this->getRefsCount() - $this->refCursor;
+    }
+
     /**
      * @return BitLike[]
      * @throws SliceException
      */
-    public function remainingBits(): array
+    public function getRemainingBits(): array
     {
         $result = [];
         $i = $this->readCursor;

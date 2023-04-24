@@ -33,10 +33,6 @@ class HashmapE extends Hashmap
         try {
             $slice = $cell->beginParse();
 
-            if (count($slice->remainingBits()) !== 1) {
-                throw new HashmapException();
-            }
-
             if (!$slice->loadBit()) {
                 return new self($keySize, $serializers);
             }

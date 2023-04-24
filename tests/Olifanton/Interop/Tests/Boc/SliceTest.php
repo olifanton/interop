@@ -5,6 +5,7 @@ namespace Olifanton\Interop\Tests\Boc;
 use Brick\Math\BigInteger;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
+use Olifanton\Interop\Boc\HashmapE;
 use Olifanton\Interop\Boc\Slice;
 use Olifanton\Interop\Tests\Stubs\CellFactory;
 use PHPUnit\Framework\TestCase;
@@ -98,5 +99,162 @@ class SliceTest extends TestCase
             );
         $this
             ->assertEquals(1, $slice->loadBit());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testSkipEmptyDict(): void
+    {
+        $dict = new HashmapE(16);
+        $ref = new Cell();
+        $builder = (new Builder())
+            ->writeDict($dict)
+            ->writeBitArray([1, 1])
+            ->writeRef($ref);
+        $slice = $builder->cell()->beginParse();
+
+        $this->assertEquals(
+            [false, true, true],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+                $slice->getRemainingBits()[2],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+
+        $slice->skipDict();
+
+        $this->assertEquals(
+            [1, 1],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testSkipFilledDict(): void
+    {
+        $dict = new HashmapE(16);
+        $dict->set([0], new Cell());
+        $dict->set([1], new Cell());
+
+        $ref = new Cell();
+        $builder = (new Builder())
+            ->writeDict($dict)
+            ->writeBitArray([1, 1])
+            ->writeRef($ref);
+        $slice = $builder->cell()->beginParse();
+
+        $this->assertEquals(
+            [true, true, true],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+                $slice->getRemainingBits()[2],
+            ],
+        );
+        $this->assertEquals(2, $slice->getRemainingRefsCount());
+
+        $slice->skipDict();
+
+        $this->assertEquals(
+            [1, 1],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testLoadEmptyDict(): void
+    {
+        $dict = new HashmapE(16);
+        $ref = new Cell();
+        $builder = (new Builder())
+            ->writeDict($dict)
+            ->writeBitArray([1, 1])
+            ->writeRef($ref);
+        $slice = $builder->cell()->beginParse();
+
+        $this->assertEquals(
+            [false, true, true],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+                $slice->getRemainingBits()[2],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+
+        $dict = $slice->loadDict(16);
+
+        $this->assertEquals(
+            [1, 1],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+
+        $this->assertEquals([], $dict->keys());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testLoadFilledDict(): void
+    {
+        $dict = new HashmapE(2);
+        $dict->set([0, 0], (new Builder())->writeInt(1, 32)->cell());
+        $dict->set([0, 1], (new Builder())->writeInt(2, 32)->cell());
+
+        $ref = new Cell();
+        $builder = (new Builder())
+            ->writeDict($dict)
+            ->writeBitArray([1, 1])
+            ->writeRef($ref);
+        $slice = $builder->cell()->beginParse();
+
+        $this->assertEquals(
+            [true, true, true],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+                $slice->getRemainingBits()[2],
+            ],
+        );
+        $this->assertEquals(2, $slice->getRemainingRefsCount());
+
+        $dict = $slice->loadDict(2);
+
+        $this->assertEquals(
+            [true, true],
+            [
+                $slice->getRemainingBits()[0],
+                $slice->getRemainingBits()[1],
+            ],
+        );
+        $this->assertEquals(1, $slice->getRemainingRefsCount());
+
+        $this->assertEquals(
+            BigInteger::of(1),
+            $dict->get([0, 0])->beginParse()->loadInt(32),
+        );
+        $this->assertEquals(
+            BigInteger::of(2),
+            $dict->get([0, 1])->beginParse()->loadInt(32),
+        );
     }
 }
