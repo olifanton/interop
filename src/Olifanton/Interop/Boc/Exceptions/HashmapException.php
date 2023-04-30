@@ -2,7 +2,4 @@
 
 namespace Olifanton\Interop\Boc\Exceptions;
 
-class HashmapException extends \Exception
-{
-
-}
+class HashmapException extends \Exception {}

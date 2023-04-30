@@ -2,7 +2,4 @@
 
 namespace Olifanton\Interop\Exceptions;
 
-class CryptoException extends \Exception
-{
-
-}
+class CryptoException extends \Exception {}

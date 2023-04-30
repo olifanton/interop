@@ -2,7 +2,4 @@
 
 namespace Olifanton\Interop\Boc\Exceptions;
 
-class SliceException extends \Exception
-{
-
-}
+class SliceException extends \Exception {}

@@ -6,8 +6,8 @@ use Brick\Math\BigInteger;
 use Olifanton\Interop\Address;
 
 /**
- * @template K of int|BigInteger
- * @template V of int|bool|string|Cell
+ * @template K of int|BigInteger|string|Cell
+ * @template V of int|BigInteger|bool|string|Cell
  * @phpstan-type BitLike 0|1|bool
  * @phpstan-type KSerializerCallback callable(K, int): BitLike[]
  * @phpstan-type KDeserializerCallback callable(BitLike[], int): K

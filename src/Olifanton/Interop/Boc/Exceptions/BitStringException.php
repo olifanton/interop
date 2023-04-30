@@ -2,7 +2,4 @@
 
 namespace Olifanton\Interop\Boc\Exceptions;
 
-class BitStringException extends \Exception
-{
-
-}
+class BitStringException extends \Exception {}

@@ -212,8 +212,6 @@ class Hashmap implements IteratorAggregate
         return self::serializeEdge($nodes);
     }
 
-
-
     /**
      * @return HashmapKV[]
      */

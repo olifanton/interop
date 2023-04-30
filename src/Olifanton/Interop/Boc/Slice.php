@@ -63,7 +63,7 @@ class Slice
     {
         $this->checkRange($n);
 
-        return ($this->array[($n / 8) | 0] & (1 << (7 - ($n % 8)))) > 0;
+        return ($this->array[(int)($n / 8) | 0] & (1 << (7 - ($n % 8)))) > 0;
     }
 
     /**

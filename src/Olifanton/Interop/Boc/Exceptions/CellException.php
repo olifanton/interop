@@ -2,7 +2,4 @@
 
 namespace Olifanton\Interop\Boc\Exceptions;
 
-class CellException extends \Exception
-{
-
-}
+class CellException extends \Exception {}
