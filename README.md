@@ -502,7 +502,73 @@ The Builder allows you to quickly create cells (operating inside a BitString ins
 
 #### Hashmap
 
-@WIP
+`Olifanton\Interop\Boc\Hashmap`
+
+`Hashmap` class is a PHP representation of a [TL-B dictionary structure](https://docs.ton.org/develop/data-formats/tl-b-types#hashmap).
+
+To work with the Hashmap class, you need to consider the following features:
+
+- internal state of the keys is always an array of bits;
+- internal state of values is always Cell;
+- keys are always fixed length.
+
+Due to the peculiarities of internal state, it is not always convenient to use keys and values of different types in Hashmap. To facilitate the usage of dictionaries, special closures (as instance of `DictSerializers`) can be passed to the constructor of Hashmap class, which simplify the marshalling of keys into bit arrays and values into Cells.
+
+Consider the following example of using a dictionary.
+The key is a signed 32-bit integer and the value is an unsigned 128-bit BigInteger:
+
+```php
+use Olifanton\Interop\Boc\Hashmap;
+use Olifanton\Interop\Boc\DictSerializers;
+use Olifanton\Interop\Boc\Builder;
+use Olifanton\Interop\Boc\Cell;
+use Brick\Math\BigInteger;
+
+$dict = new Hashmap(
+    32, // Key size,
+
+    // KV marshalling setup
+    new DictSerializers(
+        // closure converts a number into a bit array, using an intermediate cell (created by Builder) and toBitsA() helper method of BitString class
+        keySerializer: static fn(int $userFriendlyKey, int $keySize): array => (new Builder())->writeInt($userFriendlyKey, $keySize)->cell()->bits->toBitsA(),
+        // closure converts a bit array into a number, using an intermediate cell (created by Builder)
+        keyDeserializer: static fn(array $bitsKey, int $keySize): int => (new Builder())->writeBitArray($bitsKey)->cell()->beginParse()->loadInt($keySize)->toInt(),
+
+        // closure writes BigInteger value into Cell
+        valueSerializer: static fn(BigInteger $userFriendlyValue): Cell => (new Builder())->writeUint($userFriendlyValue, 128)->cell(),
+        // closure loads BigInteger value from Cell
+        valueDeserializer: static fn(Cell $internalValue): BigInteger => $internalValue->beginParse()->loadUint(128),
+    )
+);
+
+// add value to dictionary
+$dict->set(1, BigInteger::fromBase("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16));
+// now, internal Hashmap storage contains record with key [00000000000000000000000000000001] and Cell value
+
+var_dump($dict->get(1)->toBase(10)); // 340282366920938463463374607431768211455
+```
+
+
+During development, you can implement any closures that will convert your scalar KV types into key arrays and value Cells.
+You can also use predefined serializers provided in the static constructors of the `DictSerializers` class:
+
+- `DictSerializers::uintKey()`
+- `DictSerializers::intKey()`
+- `DictSerializers::addressKey()`
+- `DictSerializers::intValue()`
+- `DictSerializers::uintValue()`
+
+We can rewrite example to use predefined serializers and reduce code size:
+
+```php
+$dict = new Hashmap(
+    32,
+    DictSerializers::uintKey(isBigInt: false)->combine(DictSerializers::uintValue(128)),
+);
+$dict->set(1, BigInteger::fromBase("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16));
+
+var_dump($dict->get(1)->toBase(10)); // 340282366920938463463374607431768211455
+```
 
 ---
 
