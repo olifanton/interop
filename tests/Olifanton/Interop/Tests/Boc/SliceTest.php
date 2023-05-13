@@ -141,7 +141,7 @@ class SliceTest extends TestCase
      */
     public function testSkipFilledDict(): void
     {
-        $dict = new HashmapE(16);
+        $dict = new HashmapE(1);
         $dict->set([0], new Cell());
         $dict->set([1], new Cell());
 

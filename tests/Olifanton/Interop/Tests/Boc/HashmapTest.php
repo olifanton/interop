@@ -147,13 +147,13 @@ class HashmapTest extends TestCase
 
     public function testGetNotFoundKey(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $this->assertNull($dict->get([1, 0]));
     }
 
     public function testHasNotFoundKey(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $this->assertFalse($dict->has([1, 0]));
     }
 
@@ -162,7 +162,7 @@ class HashmapTest extends TestCase
      */
     public function testSetAndGetAndHas(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $dict->set([0, 1], (new Builder())->writeBit(1)->cell());
 
         $this->assertTrue($dict->has([0, 1]));
@@ -181,7 +181,7 @@ class HashmapTest extends TestCase
      */
     public function testReplace(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
 
         $dict->replace([0, 1], (new Builder())->writeBit(1)->cell());
         $this->assertFalse($dict->has([0, 1]));
@@ -201,7 +201,7 @@ class HashmapTest extends TestCase
      */
     public function testAdd(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $dict->add([0, 1], (new Builder())->writeBit(1)->cell());
         $dict->add([0, 1], (new Builder())->writeBit(0)->cell());
 
@@ -215,7 +215,7 @@ class HashmapTest extends TestCase
      */
     public function testDelete(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $dict->add([0, 1], (new Builder())->writeBit(1)->cell());
 
         $this->assertTrue($dict->has([0, 1]));
@@ -228,7 +228,7 @@ class HashmapTest extends TestCase
      */
     public function testIsEmpty(): void
     {
-        $dict = new Hashmap(32);
+        $dict = new Hashmap(2);
         $this->assertTrue($dict->isEmpty());
 
         $dict->add([0, 1], (new Builder())->writeBit(1)->cell());

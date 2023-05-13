@@ -143,6 +143,7 @@ class Hashmap implements IteratorAggregate
      */
     protected function setRaw(array $key, Cell $value): self
     {
+        $this->validateKeySize($key);
         $this->hashmap[self::implodeBitArray($key)] = $value;
 
         return $this;
@@ -161,6 +162,8 @@ class Hashmap implements IteratorAggregate
                 "Key serializer error, expects array, " . gettype($keyArray) . " given",
             );
         }
+
+        $this->validateKeySize($keyArray);
 
         return self::implodeBitArray($keyArray);
     }
@@ -582,6 +585,19 @@ class Hashmap implements IteratorAggregate
             throw new HashmapException($e->getMessage(), $e->getCode(), $e);
         }
         // @codeCoverageIgnoreEnd
+    }
+
+    protected final function validateKeySize(array $key): void
+    {
+        $length = count($key);
+
+        if ($length !== $this->keySize) {
+            throw new \RuntimeException(sprintf(
+                "Key size error, expected %d bits, %d given",
+                $this->keySize,
+                $length,
+            ));
+        }
     }
 
     /**
