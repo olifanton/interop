@@ -5,7 +5,10 @@ Olifanton Interop library
 ![Tests](https://github.com/olifanton/interop/actions/workflows/tests.yml/badge.svg)
 [![Latest Stable Version](https://poser.pugx.org/olifanton/interop/v/stable)](https://packagist.org/packages/olifanton/interop)
 [![Total Downloads](https://poser.pugx.org/olifanton/interop/downloads)](https://packagist.org/packages/olifanton/interop)
+![Based on TON](https://img.shields.io/badge/Based%20on-TON-blue)
 
+---
+[💬 En chat](https://t.me/olifanton_en) | [💬 Ру чат](https://t.me/olifanton_ru)
 
 ## Installation
 
