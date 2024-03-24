@@ -6,6 +6,7 @@ Olifanton Interop library
 [![Latest Stable Version](https://poser.pugx.org/olifanton/interop/v/stable)](https://packagist.org/packages/olifanton/interop)
 [![Total Downloads](https://poser.pugx.org/olifanton/interop/downloads)](https://packagist.org/packages/olifanton/interop)
 ![Based on TON](https://img.shields.io/badge/Based%20on-TON-blue)
+[![Donation](https://img.shields.io/badge/Donate-Support-%230098ea?style=flat&logo=ton&logoColor=white)](https://github.com/olifanton#donation)
 
 ---
 [💬 En chat](https://t.me/olifanton_en) | [💬 Ру чат](https://t.me/olifanton_ru)
