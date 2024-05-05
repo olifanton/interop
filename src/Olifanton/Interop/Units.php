@@ -5,80 +5,47 @@ namespace Olifanton\Interop;
 use Brick\Math\BigDecimal;
 use Brick\Math\BigInteger;
 use Brick\Math\BigNumber;
-use InvalidArgumentException;
 
 /**
  * Cryptocurrency units helper
  */
 class Units
 {
-    private const UNITS = [
-        'noether' => '0',
-        'wei' => '1',
-        'kwei' => '1000',
-        'Kwei' => '1000',
-        'babbage' => '1000',
-        'femtoether' => '1000',
-        'mwei' => '1000000',
-        'Mwei' => '1000000',
-        'lovelace' => '1000000',
-        'picoether' => '1000000',
-        'gwei' => '1000000000',
-        'Gwei' => '1000000000',
-        'shannon' => '1000000000',
-        'nanoether' => '1000000000',
-        'nano' => '1000000000',
-        'szabo' => '1000000000000',
-        'microether' => '1000000000000',
-        'micro' => '1000000000000',
-        'finney' => '1000000000000000',
-        'milliether' => '1000000000000000',
-        'milli' => '1000000000000000',
-        'ether' => '1000000000000000000',
-        'kether' => '1000000000000000000000',
-        'grand' => '1000000000000000000000',
-        'mether' => '1000000000000000000000000',
-        'gether' => '1000000000000000000000000000',
-        'tether' => '1000000000000000000000000000000',
-    ];
+    public const DEFAULT = 9;
+    public const USDt = 6;
 
     /**
      * Returns $amount in nano.
      */
-    public static final function toNano(BigNumber|string|int|float $amount): BigInteger
+    public static final function toNano(BigNumber|string|int|float $amount, int $decimals = self::DEFAULT): BigInteger
     {
-        return self::toWei(BigDecimal::of($amount), 'gwei')->toBigInteger();
+        return self::toWei(
+            BigDecimal::of($amount), str_pad("1", $decimals + 1, "0"),
+        )->toBigInteger();
     }
 
     /**
      * Returns wei value from $amount in nano.
      */
-    public static final function fromNano(BigNumber|string|int $amount): BigNumber
+    public static final function fromNano(BigNumber|string|int $amount, int $decimals = self::DEFAULT): BigNumber
     {
-        return self::fromWei(BigNumber::of($amount)->toScale(9), 'gwei');
+        return self::fromWei(
+            BigNumber::of($amount)->toScale($decimals), str_pad("1", $decimals + 1, "0"),
+            $decimals,
+        );
     }
 
-    private static function toWei(BigDecimal $bn, string $unit): BigNumber
+    private static function toWei(BigDecimal $bn, string $decimals): BigNumber
     {
-        if (!isset(self::UNITS[$unit])) {
-            throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
-        }
-
-        return $bn->multipliedBy(BigNumber::of(self::UNITS[$unit]));
+        return $bn->multipliedBy(BigNumber::of($decimals));
     }
 
-    private static function fromWei(BigDecimal $bn, string $unit): BigNumber
+    private static function fromWei(BigDecimal $bn, string $decimalsString, int $decimals): BigNumber
     {
-        if (!isset(self::UNITS[$unit])) {
-            throw new InvalidArgumentException('fromWei doesn\'t support ' . $unit . ' unit.');
-        }
-
-        $bnt = BigNumber::of(self::UNITS[$unit]);
-
-        return self::fixScale($bn->dividedBy($bnt));
+        return self::fixScale($bn->dividedBy(BigNumber::of($decimalsString)), $decimals);
     }
 
-    private static function fixScale(BigNumber $bn): BigNumber
+    private static function fixScale(BigNumber $bn, int $decimals): BigNumber
     {
         $strValue = (string)$bn;
         $isDrop = true;
@@ -100,6 +67,6 @@ class Units
             0
         );
 
-        return $bn->toScale(9 - $dropZeroCount);
+        return $bn->toScale($decimals - $dropZeroCount);
     }
 }

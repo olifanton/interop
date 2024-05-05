@@ -39,4 +39,12 @@ class UnitsTest extends TestCase
         $this->expectException(RoundingNecessaryException::class);
         Units::fromNano("20.1");
     }
+
+    public function testUSDt(): void
+    {
+        $this->assertEquals("1000000", Units::toNano("1", Units::USDt)->toBase(10));
+        $this->assertEquals("500000", Units::toNano("0.5", Units::USDt)->toBase(10));
+
+        $this->assertEquals("0.5", (string)Units::fromNano("500000", Units::USDt));
+    }
 }
