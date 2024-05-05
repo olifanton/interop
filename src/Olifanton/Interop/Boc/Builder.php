@@ -173,6 +173,21 @@ class Builder
     }
 
     /**
+     * @throws BitStringException
+     */
+    public function writeMaybeRef(?Cell $cell): self
+    {
+        if ($cell) {
+            $this->writeBit(1);
+            $this->writeRef($cell);
+        } else {
+            $this->writeBit(0);
+        }
+
+        return $this;
+    }
+
+    /**
      * @throws SliceException
      */
     public function writeSlice(Slice $slice): self

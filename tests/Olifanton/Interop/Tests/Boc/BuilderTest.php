@@ -34,4 +34,32 @@ class BuilderTest extends TestCase
 
         $this->assertInstanceOf(Cell::class, $cell);
     }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testWriteMaybeRefNull(): void
+    {
+        $cell = (new Builder())
+            ->writeMaybeRef(null)
+            ->cell();
+
+        $slice = $cell->beginParse();
+        $this->assertFalse($slice->loadBit());
+        $this->assertCount(0, $slice->getRefs());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testWriteMaybeRefNotNull(): void
+    {
+        $cell = (new Builder())
+            ->writeMaybeRef(new Cell())
+            ->cell();
+
+        $slice = $cell->beginParse();
+        $this->assertTrue($slice->loadBit());
+        $this->assertCount(1, $slice->getRefs());
+    }
 }
