@@ -40,6 +40,8 @@ class Cell
 
     private bool $isExotic = false;
 
+    protected ?Uint8Array $_hash = null;
+
     /**
      * Creates array of Cell's from byte array or hex string.
      *
@@ -72,6 +74,10 @@ class Cell
     {
         $this->bits = new BitString(self::SIZE);
         $this->_refs = new \ArrayObject();
+        (function (Cell $self) {
+            /** @noinspection PhpDynamicFieldDeclarationInspection */
+            $this->_cell = $self; // @phpstan-ignore-line
+        })(...)->call($this->bits, $this);
     }
 
     /**
@@ -90,6 +96,7 @@ class Cell
         $this->_refs = new \ArrayObject(
             array_merge($this->_refs->getArrayCopy(), $anotherCell->_refs->getArrayCopy())
         );
+        $this->_hash = null;
 
         return $this;
     }
@@ -220,6 +227,10 @@ class Cell
      */
     public function hash(): Uint8Array
     {
+        if ($this->_hash) {
+            return $this->_hash;
+        }
+
         try {
             return Crypto::sha256($this->getRepr());
         // @codeCoverageIgnoreStart

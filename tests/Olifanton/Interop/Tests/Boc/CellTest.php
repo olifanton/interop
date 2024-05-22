@@ -2,6 +2,7 @@
 
 namespace Olifanton\Interop\Tests\Boc;
 
+use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
@@ -301,5 +302,22 @@ class CellTest extends TestCase
   x{C00000000000000000000000012D452DA449E50B8CF7DD27861F146122AFE1B546BB8B70FC8216F0C614139F8E04_}\n",
             $cell->print(),
         );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testCachedHash(): void
+    {
+        $cell = new Cell();
+        $h0 = Bytes::bytesToHexString($cell->hash());
+
+        $cell->bits->writeBit(1);
+        $h1 = Bytes::bytesToHexString($cell->hash());
+        $this->assertNotEquals($h0, $h1);
+
+        $cell->writeCell((new Builder())->writeUint(2, 8)->cell());
+        $h2 = Bytes::bytesToHexString($cell->hash());;
+        $this->assertNotEquals($h1, $h2);
     }
 }

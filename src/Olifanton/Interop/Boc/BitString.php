@@ -27,6 +27,10 @@ class BitString implements \Stringable
 
     private Uint8Array $array;
 
+    protected ?Cell $_cell = null;
+
+    private ?\Closure $cellProxyInvalidator = null;
+
     /**
      * @param int $length length of Uint8Array. Default value for TVM Cell: _1023_
      */
@@ -90,6 +94,7 @@ class BitString implements \Stringable
     {
         $this->checkRange($n);
         $this->array[(int)($n / 8) | 0] |= 1 << (7 - ($n % 8));
+        $this->invalidateCell();
     }
 
     /**
@@ -101,6 +106,7 @@ class BitString implements \Stringable
     {
         $this->checkRange($n);
         $this->array[(int)($n / 8) | 0] &= ~(1 << (7 - ($n % 8)));
+        $this->invalidateCell();
     }
 
     /**
@@ -112,6 +118,7 @@ class BitString implements \Stringable
     {
         $this->checkRange($n);
         $this->array[(int)($n / 8) | 0] ^= 1 << (7 - ($n % 8));
+        $this->invalidateCell();
     }
 
     /**
@@ -505,6 +512,20 @@ class BitString implements \Stringable
         }
 
         return $str;
+    }
+
+    private function invalidateCell(): void
+    {
+        if ($this->_cell) {
+            if (!$this->cellProxyInvalidator) {
+                $this->cellProxyInvalidator = (function () {
+                    /** @noinspection PhpDynamicFieldDeclarationInspection */
+                    $this->_hash = null; // @phpstan-ignore-line
+                })(...);
+            }
+
+            $this->cellProxyInvalidator->call($this->_cell);
+        }
     }
 
     private static function getUint8ArrayLength(int $bitStringLength): int
