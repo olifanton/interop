@@ -282,7 +282,7 @@ class Cell
 
         $cells_num = count($topologicalOrder);
         $s = strlen(decbin($cells_num));
-        $s_bytes = min((int)ceil($s / 8), 1);
+        $s_bytes = max((int)ceil($s / 8), 1);
         $full_size = 0;
         $sizeIndex = [];
 
