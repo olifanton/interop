@@ -196,6 +196,25 @@ class DictSerializers
     }
 
     /**
+     * @param null|VSerializerCallback $valueSerializer
+     * @param null|VDeserializerCallback $valueDeserializer
+     */
+    public final static function sha256stringKey(
+        ?callable $valueSerializer = null,
+        ?callable $valueDeserializer = null,
+    ): self
+    {
+        return new self(
+            static fn (string $key, int $keySize): array => BitString::empty()
+                ->writeUint(BigInteger::fromBytes(hash("sha256", $key, true), false), $keySize)
+                ->toBitsA(),
+            null,
+            $valueSerializer,
+            $valueDeserializer,
+        );
+    }
+
+    /**
      * @param VSerializerCallback|null $keySerializer
      * @param VDeserializerCallback|null $keyDeserializer
      */
@@ -234,7 +253,7 @@ class DictSerializers
         return new self(
             $keySerializer,
             $keyDeserializer,
-            static fn(int|BigInteger $v): Cell => (new Builder())->writeUint($v, $uintSize)->cell(),
+            static fn (int|BigInteger $v): Cell => (new Builder())->writeUint($v, $uintSize)->cell(),
             static function (Cell $v) use($isBigInt, $uintSize): int|BigInteger {
                 $value = $v
                     ->beginParse()
@@ -243,6 +262,24 @@ class DictSerializers
                 return $isBigInt ? $value : $value->toInt();
             },
         );
+    }
+
+    public final static function snakeStringValue(
+        ?callable $keySerializer = null,
+        ?callable $keyDeserializer = null,
+    ): self
+    {
+        return new self(
+            $keySerializer,
+            $keyDeserializer,
+            static fn (string $v): Cell => SnakeString::fromString($v)->cell(),
+            static fn (Cell $v): string => SnakeString::parse($v)->getData(),
+        );
+    }
+
+    public final static function onchainMetadata(): self
+    {
+        return self::snakeStringValue()->combine(self::sha256stringKey());
     }
 
     /**

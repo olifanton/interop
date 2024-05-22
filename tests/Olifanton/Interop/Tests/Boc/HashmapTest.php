@@ -377,4 +377,23 @@ class HashmapTest extends TestCase
             );
         }
     }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testOnchainMetadataDict(): void
+    {
+        $jettonContentBoc = "b5ee9c7201010701007d00010300c00102012002030143bff872ebdb514d9c97c283b7f0ae5179029e2b6119c39462719e4f46ed8f7413e640040143bff7407e978f01a40711411b1acb773a96bdd93fa83bb5ca8435013c8c4b3ac91f400601020005003e68747470733a2f2f7465746865722e746f2f757364742d746f6e2e6a736f6e00040036";
+        $jettonContentCell = Cell::oneFromBoc($jettonContentBoc);
+        $contentSlice = $jettonContentCell->beginParse();
+
+        $contentSlice->skipBits(8);
+        $metadataDict = $contentSlice->loadDict(
+            256,
+            DictSerializers::onchainMetadata(),
+        );
+
+        $this->assertEquals("6", $metadataDict->get("decimals"));
+        $this->assertEquals("https://tether.to/usdt-ton.json", $metadataDict->get("uri"));
+    }
 }
