@@ -310,8 +310,8 @@ class HashmapTest extends TestCase
         foreach ($dict as $k => $_) {
             /** @noinspection PhpUnpackedArgumentTypeMismatchInspection */
             $this->assertEquals(
-                $dict->get($k),
-                $result->get($k),
+                $dict->get($k)->hash(),
+                $result->get($k)->hash(),
                 sprintf("Key: [ %d, %d ]", ...$k),
             );
         }

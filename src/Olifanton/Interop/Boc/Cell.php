@@ -232,7 +232,9 @@ class Cell
         }
 
         try {
-            return Crypto::sha256($this->getRepr());
+            $this->_hash = Crypto::sha256($this->getRepr());
+
+            return $this->_hash;
         // @codeCoverageIgnoreStart
         } catch (CryptoException $e) {
             throw new CellException("SHA256 digest error: " . $e->getMessage(), $e->getCode(), $e);
