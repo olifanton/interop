@@ -74,6 +74,21 @@ class Builder
     }
 
     /**
+     * @throws BitStringException
+     */
+    public function writeMaybeUint(int | BigInteger | null $number, int $bitLength): self
+    {
+        if (!is_null($number)) {
+            $this->cell->bits->writeBit(1);
+            $this->cell->bits->writeUint($number, $bitLength);
+        } else {
+            $this->cell->bits->writeBit(0);
+        }
+
+        return $this;
+    }
+
+    /**
      * Writes $bitLength-bit signed integer.
      *
      * @throws BitStringException
@@ -86,6 +101,21 @@ class Builder
     }
 
     /**
+     * @throws BitStringException
+     */
+    public function writeMaybeInt(int | BigInteger | null $number, int $bitLength): self
+    {
+        if (!is_null($number)) {
+            $this->writeBit(1);
+            $this->cell->bits->writeInt($number, $bitLength);
+        } else {
+            $this->writeBit(0);
+        }
+
+        return $this;
+    }
+
+    /**
      * Alias of `writeUint()` method with predefined $bitLength parameter value.
      *
      * @throws BitStringException
@@ -93,6 +123,21 @@ class Builder
     public function writeUint8(int $ui8): self
     {
         $this->cell->bits->writeUint8($ui8);
+
+        return $this;
+    }
+
+    /**
+     * @throws BitStringException
+     */
+    public function writeMaybeUint8(?int $ui8): self
+    {
+        if (!is_null($ui8)) {
+            $this->cell->bits->writeBit(1);
+            $this->cell->bits->writeUint8($ui8);
+        } else {
+            $this->cell->bits->writeBit(0);
+        }
 
         return $this;
     }
@@ -133,6 +178,21 @@ class Builder
     public function writeCoins(int | BigInteger $amount): self
     {
         $this->cell->bits->writeCoins($amount);
+
+        return $this;
+    }
+
+    /**
+     * @throws BitStringException
+     */
+    public function writeMaybeCoins(int | BigInteger | null $amount): self
+    {
+        if (!is_null($amount)) {
+            $this->cell->bits->writeBit(1);
+            $this->cell->bits->writeCoins($amount);
+        } else {
+            $this->cell->bits->writeBit(0);
+        }
 
         return $this;
     }
