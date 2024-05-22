@@ -141,6 +141,24 @@ class Address implements \Stringable
         return $addressBase64;
     }
 
+    public function asWallet(): string
+    {
+        return $this->toString(
+            isUserFriendly: true,
+            isUrlSafe: true,
+            isBounceable: false,
+        );
+    }
+
+    public function asContract(): string
+    {
+        return $this->toString(
+            isUserFriendly: true,
+            isUrlSafe: true,
+            isBounceable: true,
+        );
+    }
+
     /**
      * Returns Workchain ID.
      *
@@ -208,6 +226,11 @@ class Address implements \Stringable
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    public static function zero(): self
+    {
+        return new self("UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ");
     }
 
     #[ArrayShape([
