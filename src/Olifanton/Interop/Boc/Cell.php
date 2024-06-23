@@ -5,6 +5,11 @@ namespace Olifanton\Interop\Boc;
 use JetBrains\PhpStorm\ArrayShape;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
+use Olifanton\Interop\Boc\Exceptions\SliceException;
+use Olifanton\Interop\Boc\Helpers\CellType;
+use Olifanton\Interop\Boc\Helpers\CellTypeResolver;
+use Olifanton\Interop\Boc\Helpers\LevelMask;
+use Olifanton\Interop\Boc\Helpers\MaskResolver;
 use Olifanton\Interop\Boc\Helpers\TypedArrayHelper;
 use Olifanton\Interop\Boc\Helpers\BocMagicPrefix;
 use Olifanton\Interop\Bytes;
@@ -20,7 +25,7 @@ use function DeepCopy\deep_copy;
  * `Cell` is a class that implements the concept of [TVM Cells](https://ton.org/docs/learn/overviews/Cells) in PHP. To create new and process received messages from the blockchain, you will work with instances of the Cell class.
  *
  * @property-read BitString $bits
- * @property \ArrayObject<Cell> $refs
+ * @property \ArrayObject<Cell> & Cell[] $refs
  */
 class Cell
 {
@@ -39,6 +44,8 @@ class Cell
     private array $refs_r = []; // @phpstan-ignore-line
 
     private bool $isExotic = false;
+
+    private CellType $type = CellType::ORDINARY;
 
     protected ?Uint8Array $_hash = null;
 
@@ -135,18 +142,19 @@ class Cell
 
     public function getRefsDescriptor(): Uint8Array
     {
-        return new Uint8Array([
-            count($this->_refs) + (int)$this->isExotic * 8 + $this->getMaxLevel() * 32,
-        ]);
+        $result = new Uint8Array(1);
+        $result->fSet(0, count($this->_refs) + (int)$this->isExotic * 8 + $this->getMaxLevel() * 32,);
+
+        return $result;
     }
 
     public function getBitsDescriptor(): Uint8Array
     {
         $usedBits = $this->bits->getUsedBits();
+        $result = new Uint8Array(1);
+        $result->fSet(0, (int)ceil($usedBits / 8) + (int)floor($usedBits / 8));
 
-        return new Uint8Array([
-            (int)ceil($usedBits / 8) + (int)floor($usedBits / 8),
-        ]);
+        return $result;
     }
 
     /**
@@ -177,6 +185,14 @@ class Cell
      */
     public function getRepr(): Uint8Array
     {
+        if ($this->isExotic) {
+            if ($this->type === CellType::MERKLE_PROOF || $this->type === CellType::MERKLE_UPDATE) {
+                throw new \LogicException(
+                    "Hash calculation for Merkle proof / Merkle update cells currently not supported",
+                );
+            }
+        }
+
         $reprArray = [
             $this->getDataWithDescriptors(),
         ];
@@ -256,11 +272,6 @@ class Cell
         }
 
         return $s;
-    }
-
-    public function isExplicitlyStoredHashes(): int
-    {
-        return 0;
     }
 
     /**
@@ -361,6 +372,18 @@ class Cell
         );
     }
 
+    /**
+     * @throws CellException
+     */
+    public function getLevelMask(): LevelMask
+    {
+        try {
+            return MaskResolver::get($this->bits, $this->type, $this->refs);
+        } catch (SliceException $e) {
+            throw new CellException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
     public function __get(string $name)
     {
         if ($name === "bits") {
@@ -377,9 +400,9 @@ class Cell
     private function getMaxDepthAsArray(): Uint8Array
     {
         $maxDepth = $this->getMaxDepth();
-        $d = new Uint8Array([0, 0]);
-        $d[0] = (int)floor($maxDepth / 256);
-        $d[1] = $maxDepth % 256;
+        $d = new Uint8Array(2);
+        $d->fSet(0, (int)floor($maxDepth / 256));
+        $d->fSet(1, $maxDepth % 256);
 
         return $d;
     }
@@ -393,10 +416,6 @@ class Cell
         $reprArray = [
             $this->getDataWithDescriptors(),
         ];
-
-        if ($this->isExplicitlyStoredHashes()) {
-            throw new CellException("Cell hashes explicit storing is not implemented");
-        }
 
         foreach ($this->_refs as $ref) {
             $refHash = $ref->hash();
@@ -465,7 +484,7 @@ class Cell
         for ($ci = 0; $ci < $header["cells_num"]; $ci++) {
             try {
                 $dd = self::deserializeCellData($cells_data, $header["size_bytes"]);
-            } catch (BitStringException $e) {
+            } catch (BitStringException|SliceException $e) {
                 throw new CellException(
                     "Cell data deserialization error: " . $e->getMessage() . "; cell_num idx: " . $ci,
                     $e->getCode(),
@@ -523,67 +542,61 @@ class Cell
     ])]
     private static function parseBocHeader(Uint8Array $serializedBoc): array
     {
-        if ($serializedBoc->length < 4 + 1) {
+        if ($serializedBoc->length < 5) {
             throw new CellException("Not enough bytes for magic prefix");
         }
 
+        /** @var Uint8Array $inputData */
         $inputData = deep_copy($serializedBoc);
-        $prefix = self::slice($serializedBoc, 0, 4);
-        $serializedBoc = self::slice($serializedBoc, 4);
+        $serializedBocReader = new Slice(
+            $serializedBoc,
+            $serializedBoc->length * 8,
+            [],
+            usedBits: $serializedBoc->length * 8,
+        );
 
-        $size_bytes = $has_idx = $hash_crc32 = $has_cache_bits = $flags = 0;
+        $prefix = $serializedBocReader->loadUint(4 * 8)->toBase(16);
+        $size_bytes = $has_idx = $has_crc32 = $has_cache_bits = $flags = 0;
 
-        if (Bytes::compareBytes($prefix, BocMagicPrefix::reachBocMagicPrefix())) {
-            $flags_byte = $serializedBoc[0];
+        if ($prefix === BocMagicPrefix::REACH_BOC_MAGIC_PREFIX) {
+            $flags_byte = $serializedBocReader->loadUint(8)->toInt();
             $has_idx = $flags_byte & 128;
-            $hash_crc32 = $flags_byte & 64;
+            $has_crc32 = $flags_byte & 64;
             $has_cache_bits = $flags_byte & 32;
             $flags = ($flags_byte & 16) * 2 + ($flags_byte & 8);
             $size_bytes = $flags_byte % 8;
-        } elseif (Bytes::compareBytes($prefix, BocMagicPrefix::leanBocMagicPrefix())) {
+        } elseif ($prefix === BocMagicPrefix::LEAN_BOC_MAGIC_PREFIX) {
             $has_idx = 1;
-            $hash_crc32 = 0;
+            $has_crc32 = 0;
             $has_cache_bits = 0;
             $flags = 0;
-            $size_bytes = $serializedBoc[0];
-        } elseif (Bytes::compareBytes($prefix, BocMagicPrefix::leanBocMagicPrefixCRC())) {
+            $size_bytes = $serializedBocReader->loadUint(8)->toInt();
+        } elseif ($prefix === BocMagicPrefix::LEAN_BOC_MAGIC_PREFIX_CRC) {
             $has_idx = 1;
-            $hash_crc32 = 1;
+            $has_crc32 = 1;
             $has_cache_bits = 0;
             $flags = 0;
-            $size_bytes = $serializedBoc[0];
+            $size_bytes = $serializedBocReader->loadUint(8)->toInt();
         }
 
-        $serializedBoc = self::slice($serializedBoc, 1);
-
-        if ($serializedBoc->length < 1 + 5 * $size_bytes) {
+        if ($serializedBocReader->getFreeBytes() < 1 + 5 * $size_bytes) {
             throw new CellException("Not enough bytes for encoding cells counters");
         }
 
-        $offset_bytes = $serializedBoc[0];
-        $serializedBoc = self::slice($serializedBoc, 1);
+        $offset_bytes = $serializedBocReader->loadUint(8)->toInt();
+        $cells_num = $serializedBocReader->loadUint($size_bytes * 8)->toInt();
+        $roots_num = $serializedBocReader->loadUint($size_bytes * 8)->toInt();
+        $absent_num = $serializedBocReader->loadUint($size_bytes * 8)->toInt();
+        $tot_cells_size = $serializedBocReader->loadUint($offset_bytes * 8)->toInt();
 
-        $cells_num = Bytes::readNBytesUIntFromArray($size_bytes, $serializedBoc);
-        $serializedBoc = self::slice($serializedBoc, $size_bytes);
-
-        $roots_num = Bytes::readNBytesUIntFromArray($size_bytes, $serializedBoc);
-        $serializedBoc = self::slice($serializedBoc, $size_bytes);
-
-        $absent_num = Bytes::readNBytesUIntFromArray($size_bytes, $serializedBoc);
-        $serializedBoc = self::slice($serializedBoc, $size_bytes);
-
-        $tot_cells_size = Bytes::readNBytesUIntFromArray($offset_bytes, $serializedBoc);
-        $serializedBoc = self::slice($serializedBoc, $offset_bytes);
-
-        if ($serializedBoc->length < $roots_num * $size_bytes) {
+        if ($serializedBocReader->getFreeBytes() < $roots_num * $size_bytes) {
             throw new CellException("Not enough bytes for encoding root cells hashes");
         }
 
         $root_list = [];
 
         for ($c = 0; $c < $roots_num; $c++) {
-            $root_list[] = Bytes::readNBytesUIntFromArray($size_bytes, $serializedBoc);
-            $serializedBoc = self::slice($serializedBoc, $size_bytes);
+            $root_list[] = $serializedBocReader->loadUint($size_bytes * 8)->toInt();
         }
 
         $index = false;
@@ -591,44 +604,41 @@ class Cell
         if ($has_idx) {
             $index = [];
 
-            if ($serializedBoc->length < $offset_bytes * $cells_num) {
+            if ($serializedBocReader->getFreeBytes() < $offset_bytes * $cells_num) {
                 throw new CellException("Not enough bytes for index encoding");
             }
 
             for ($c = 0; $c < $cells_num; $c++) {
-                $index[] = Bytes::readNBytesUIntFromArray($offset_bytes, $serializedBoc);
-                $serializedBoc = self::slice($serializedBoc, $offset_bytes);
+                $index[] = $serializedBocReader->loadUint($offset_bytes * 8)->toInt();
             }
         }
 
-        if ($serializedBoc->length < $tot_cells_size) {
+        if ($serializedBocReader->getFreeBytes() < $tot_cells_size) {
             throw new CellException("Not enough bytes for cells data");
         }
 
-        $cells_data = self::slice($serializedBoc, 0, $tot_cells_size);
-        $serializedBoc = self::slice($serializedBoc, $tot_cells_size);
+        $cells_data = self::slice($inputData, $serializedBocReader->getReadBytes(), /*$tot_cells_size*/);
+        $serializedBocReader->skipBits($tot_cells_size * 8);
 
-        if ($hash_crc32) {
-            if ($serializedBoc->length < 4) {
+        if ($has_crc32) {
+            if ($serializedBocReader->getFreeBytes() < 4) {
                 throw new CellException("Not enough bytes for crc32c checksum");
             }
 
             $length = $inputData->length;
 
-            if (!Bytes::compareBytes(Checksum::crc32c(self::slice($inputData, 0, $length - 4)), self::slice($serializedBoc, 0, 4))) {
+            if (!Bytes::compareBytes(Checksum::crc32c(self::slice($inputData, 0, $length - 4)), $serializedBocReader->loadBits(32))) {
                 throw new CellException("Crc32c checksum mismatch");
             }
-
-            $serializedBoc = self::slice($serializedBoc, 4);
         }
 
-        if ($serializedBoc->length > 0) {
+        if ($serializedBocReader->getFreeBits() > 0) {
             throw new CellException("Too much bytes in BoC serialization");
         }
 
         return [
             "has_idx" => $has_idx,
-            "hash_crc32" => $hash_crc32,
+            "hash_crc32" => $has_crc32,
             "has_cache_bits" => $has_cache_bits,
             "flags" => $flags,
             "size_bytes" => $size_bytes,
@@ -644,7 +654,7 @@ class Cell
     }
 
     /**
-     * @throws CellException|BitStringException
+     * @throws CellException|BitStringException|SliceException
      */
     #[ArrayShape([
         "cell" => "Olifanton\\Boc\\Cell",
@@ -659,18 +669,30 @@ class Cell
         $d1 = $cellData[0];
         $d2 = $cellData[1];
 
-        $cellData = self::slice($cellData, 2);
-
         $isExotic = $d1 & 8;
         $refNum = $d1 % 8;
         $dataByteSize = (int)ceil($d2 / 2);
         $fulfilledBytes = !($d2 % 2);
+        $levelMask = $d1 >> 5;
+        $hasHashes = ($d1 & 16) !== 0;
 
         $cell = new Cell();
         $cell->isExotic = (bool)$isExotic;
+        $offset = 2;
+
+        if ($hasHashes) {
+            $hashesCount = self::getHashesCountFromMask($levelMask & 7);
+            $offset += $hashesCount * 32 + $hashesCount * 2;
+        }
+
+        $cellData = self::slice($cellData, $offset);
 
         if ($cellData->length < $dataByteSize + $referenceIndexSize * $refNum) {
-            throw new CellException("Not enough bytes to encode cell data");
+            throw new CellException(sprintf(
+                "Not enough bytes to encode cell data, needed: %d, cell data bytes: %d",
+                $dataByteSize + $referenceIndexSize * $refNum,
+                $cellData->length,
+            ));
         }
 
         $cell
@@ -679,6 +701,11 @@ class Cell
                 self::slice($cellData, 0, $dataByteSize),
                 $fulfilledBytes,
             );
+
+        if ($isExotic) {
+            $cell->type = CellTypeResolver::get($cell->bits);
+        }
+
         $cellData = self::slice($cellData, $dataByteSize);
 
         for ($r = 0; $r < $refNum; $r++) {
@@ -776,5 +803,17 @@ class Cell
     private static function isBase64String(string $base64String): bool
     {
         return (bool) preg_match('/^[a-zA-Z0-9\/\r\n+]*={0,2}$/', $base64String);
+    }
+
+    private static function getHashesCountFromMask(int $mask): int
+    {
+        $n = 0;
+
+        for ($i = 0; $i < 3; $i++) {
+            $n += ($mask & 1);
+            $mask = $mask >> 1;
+        }
+
+        return $n + 1;
     }
 }

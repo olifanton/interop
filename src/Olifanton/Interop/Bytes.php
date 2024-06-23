@@ -25,7 +25,7 @@ class Bytes
 
         for ($i = 0; $i < $n; $i++) {
             $res *= 256;
-            $res += $uint8Array[$i];
+            $res += $uint8Array->fGet($i);
         }
 
         return $res;
@@ -44,15 +44,7 @@ class Bytes
      */
     public static final function arraySlice(Uint8Array $bytes, int $start, int $end): Uint8Array
     {
-        $result = new Uint8Array($end - $start);
-        $j = 0;
-
-        for ($i = $start; $i < $end; $i++) {
-            $result[$j] = $bytes[$i];
-            $j++;
-        }
-
-        return $result;
+        return new Uint8Array($bytes->buffer->slice($start, $end));
     }
 
     /**
@@ -60,16 +52,18 @@ class Bytes
      */
     public static final function concatBytes(Uint8Array $a, Uint8Array $b): Uint8Array
     {
-        $c = new Uint8Array($a->length + $b->length);
+        $aLength = $a->length;
+        $bLength = $b->length;
+        $c = new Uint8Array($aLength + $bLength);
         $i = 0;
 
-        for ($j = 0; $j < $a->length; $j++) {
-            $c[$i] = $a[$j];
+        for ($j = 0; $j < $aLength; $j++) {
+            $c->fSet($i, $a->fGet($j));
             $i++;
         }
 
-        for ($j = 0; $j < $b->length; $j++) {
-            $c[$i] = $b[$j];
+        for ($j = 0; $j < $bLength; $j++) {
+            $c->fSet($i, $b->fGet($j));
             $i++;
         }
 
@@ -138,8 +132,7 @@ class Bytes
         $result = new Uint8Array($length);
 
         for ($i = 0; $i < $length; $i++) {
-            $b = substr($str, $i * 2, 2);
-            $result[$i] = hexdec($b);
+            $result->fSet($i, hexdec(substr($str, $i * 2, 2)));
         }
 
         return $result;
@@ -159,7 +152,7 @@ class Bytes
         $result = [];
 
         for ($i = 0; $i < $bytes->length; $i++) {
-            $result[] = str_pad(dechex($bytes[$i]), 2, "0", STR_PAD_LEFT);
+            $result[] = str_pad(dechex($bytes->fGet($i)), 2, "0", STR_PAD_LEFT);
         }
 
         return implode("", $result);
@@ -170,7 +163,7 @@ class Bytes
         $arr = new Uint8Array(strlen($bytes));
 
         foreach (str_split($bytes) as $i => $byte) {
-            $arr->offsetSet($i, unpack("C", $byte)[1]);
+            $arr->fSet($i, unpack("C", $byte)[1]);
         }
 
         return $arr;
@@ -199,9 +192,19 @@ class Bytes
         $bytes = new Uint8Array($length);
 
         for ($i = 0; $i < $length; $i++) {
-            $bytes[$i] = ord($binaryString[$i]);
+            $bytes->fSet($i, ord($binaryString[$i]));
         }
 
         return $bytes;
+    }
+
+    public static function copyArrayToArray(Uint8Array $target, Uint8Array $source, int $targetStart = 0): void
+    {
+        $end = $source->length + $targetStart;
+
+        for ($pos = $targetStart, $i = 0; $pos < $end; $pos++) {
+            $target->fSet($pos, $source->fGet($i));
+            $i++;
+        }
     }
 }

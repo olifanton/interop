@@ -125,13 +125,25 @@ class Address implements \Stringable
         }
 
         $addr = new Uint8Array(34);
-        $addr[0] = $tag;
-        $addr[1] = $this->wc;
-        $addr->set($this->hashPart, 2);
+        $addr->fSet(0, $tag);
+        $addr->fSet(1, $this->wc);
+
+        for ($i = 2; $i < $addr->length; $i++) {
+            $addr->fSet($i, $this->hashPart->fGet($i - 2));
+        }
 
         $addressWithChecksum = new Uint8Array(36);
-        $addressWithChecksum->set($addr);
-        $addressWithChecksum->set(Checksum::crc16($addr), 34);
+
+        for ($i = 0; $i < $addr->length; $i++) {
+            $addressWithChecksum->fSet($i, $addr->fGet($i));
+        }
+
+        $crc16 = Checksum::crc16($addr);
+
+        for ($i = 0; $i < $crc16->length; $i++) {
+            $addressWithChecksum->fSet($i + 34, $crc16->fGet($i));
+        }
+
         $addressBase64 = base64_encode(Bytes::arrayToBytes($addressWithChecksum));
 
         if ($isUrlSafe) {
@@ -207,6 +219,15 @@ class Address implements \Stringable
     public function isUrlSafe(): bool
     {
         return $this->isUrlSafe;
+    }
+
+    public function isEqual(Address|string $other): bool
+    {
+        if (is_string($other)) {
+            $other = new Address($other);
+        }
+
+        return Bytes::compareBytes($this->hashPart, $other->hashPart);
     }
 
     public function __toString(): string

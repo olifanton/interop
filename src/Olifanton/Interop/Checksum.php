@@ -17,20 +17,14 @@ class Checksum
      */
     public static final function crc32c(Uint8Array $bytes): Uint8Array
     {
-        $intCrc = self::crc32cInternal(0, $bytes);
-        $arr = new Uint8Array(4);
-        $arr[0] = $intCrc >> 24;
-        $arr[1] = $intCrc >> 16;
-        $arr[2] = $intCrc >> 8;
-        $arr[3] = $intCrc;
+        $intCrc = self::crc32cInternal($bytes);
+        $result = new Uint8Array(4);
+        $result->fSet(0, $intCrc);
+        $result->fSet(1, $intCrc >> 8);
+        $result->fSet(2, $intCrc >> 16);
+        $result->fSet(3, $intCrc >> 24);
 
-        $tmpArray = [];
-
-        for ($i = 0; $i < 4; $i++) {
-            $tmpArray[] = $arr[$i];
-        }
-
-        return new Uint8Array(array_reverse($tmpArray));
+        return $result;
     }
 
     /**
@@ -40,10 +34,13 @@ class Checksum
     {
         $reg = 0;
         $message = new Uint8Array($bytes->length + 2);
-        $message->set($bytes);
+
+        for ($i = 0; $i < $bytes->length; $i++) {
+            $message->fSet($i, $bytes->fGet($i));
+        }
 
         for ($i = 0; $i < $message->length; $i++) {
-            $byte = $message[$i];
+            $byte = $message->fGet($i);
             $mask = 0x80;
 
             while ($mask > 0) {
@@ -65,23 +62,22 @@ class Checksum
         return new Uint8Array([(int)floor($reg / 256), $reg % 256]);
     }
 
-    private static function crc32cInternal(int $crc, Uint8Array $bytes): int
+    private static function crc32cInternal(Uint8Array $bytes): int
     {
-        $crc ^= 0xffffffff;
+        $crc = 0 ^ 0xffffffff;
+        $length = $bytes->length;
 
-        for ($n = 0; $n < $bytes->length; $n++) {
-            $crc ^= $bytes[$n];
+        for ($n = 0; $n < $length; $n++) {
+            $crc ^= $bytes->fGet($n);
 
             for ($i = 0; $i < 8; $i++) {
-                $crc = $crc & 1 ? (self::rrr($crc, 1)) ^ self::POLY_32 : self::rrr($crc, 1);
+                $rrr = ($crc & 0xffffffff) >> 1;
+                $crc = $crc & 1
+                    ? $rrr ^ self::POLY_32
+                    : $rrr;
             }
         }
 
         return $crc ^ 0xffffffff;
-    }
-
-    private static function rrr(int $v, int $n): int
-    {
-        return ($v & 0xffffffff) >> ($n & 0x1f);
     }
 }

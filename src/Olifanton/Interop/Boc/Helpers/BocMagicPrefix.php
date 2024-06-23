@@ -13,10 +13,14 @@ final class BocMagicPrefix
 
     private static ?Uint8Array $leanBocMagicPrefixCRC = null;
 
+    public const REACH_BOC_MAGIC_PREFIX = "b5ee9c72";
+    public const LEAN_BOC_MAGIC_PREFIX = "68ff65f3";
+    public const LEAN_BOC_MAGIC_PREFIX_CRC = "acc3a728";
+
     public static function reachBocMagicPrefix(): Uint8Array
     {
         if (!self::$reachBocMagicPrefix) {
-            self::$reachBocMagicPrefix = Bytes::hexStringToBytes("b5ee9c72");
+            self::$reachBocMagicPrefix = Bytes::hexStringToBytes(self::REACH_BOC_MAGIC_PREFIX);
         }
 
         return self::$reachBocMagicPrefix;
@@ -25,7 +29,7 @@ final class BocMagicPrefix
     public static function leanBocMagicPrefix(): Uint8Array
     {
         if (!self::$leanBocMagicPrefix) {
-            self::$leanBocMagicPrefix = Bytes::hexStringToBytes("68ff65f3");
+            self::$leanBocMagicPrefix = Bytes::hexStringToBytes(self::LEAN_BOC_MAGIC_PREFIX);
         }
 
         return self::$leanBocMagicPrefix;
@@ -34,7 +38,7 @@ final class BocMagicPrefix
     public static function leanBocMagicPrefixCRC(): Uint8Array
     {
         if (!self::$leanBocMagicPrefixCRC) {
-            self::$leanBocMagicPrefixCRC = Bytes::hexStringToBytes("acc3a728");
+            self::$leanBocMagicPrefixCRC = Bytes::hexStringToBytes(self::LEAN_BOC_MAGIC_PREFIX_CRC);
         }
 
         return self::$leanBocMagicPrefixCRC;

@@ -7,6 +7,7 @@ use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\HashmapE;
 use Olifanton\Interop\Boc\Slice;
+use Olifanton\Interop\Bytes;
 use Olifanton\Interop\Tests\Stubs\CellFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -256,5 +257,80 @@ class SliceTest extends TestCase
             BigInteger::of(2),
             $dict->get([0, 1])->beginParse()->loadInt(32),
         );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testPreloadBit(): void
+    {
+        $slice = (new Builder())
+            ->writeBit(1)
+            ->writeBit(0)
+            ->writeBit(1)
+            ->cell()
+            ->beginParse();
+
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+
+        $b0 = $slice->loadBit();
+        $this->assertTrue($b0);
+
+        $this->assertFalse($slice->preloadBit());
+        $this->assertFalse($slice->preloadBit());
+        $this->assertFalse($slice->preloadBit());
+        $this->assertFalse($slice->preloadBit());
+
+        $b1 = $slice->loadBit();
+        $this->assertFalse($b1);
+
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+        $this->assertTrue($slice->preloadBit());
+
+        $b2 = $slice->loadBit();
+        $this->assertTrue($b2);
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testPreloadBits(): void
+    {
+        $slice = (new Builder())
+            ->writeBit(1)
+            ->writeBit(0)
+            ->writeBit(1)
+            ->writeBit(0)
+            ->cell()
+            ->beginParse();
+
+        $bits = $slice->preloadBits(4);
+        $this->assertEquals(
+            "a0",
+            Bytes::bytesToHexString($bits),
+        );
+
+        $this->assertTrue($slice->loadBit());
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testPreloadUint(): void
+    {
+        $slice = (new Builder())
+            ->writeUint(999, 32)
+            ->cell()
+            ->beginParse();
+
+        $this->assertEquals(999, $slice->preloadUint(32)->toInt());
+        $this->assertEquals(999, $slice->preloadUint(32)->toInt());
+        $this->assertEquals(999, $slice->preloadUint(32)->toInt());
+        $this->assertEquals(999, $slice->preloadUint(32)->toInt());
     }
 }

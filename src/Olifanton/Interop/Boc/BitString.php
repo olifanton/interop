@@ -37,11 +37,7 @@ class BitString implements \Stringable
     public function __construct(int $length)
     {
         $this->length = $length;
-        $this->array = new Uint8Array(array_fill(
-            0,
-            self::getUint8ArrayLength($length),
-            0
-        ));
+        $this->array = new Uint8Array(self::getUint8ArrayLength($length));
     }
 
     public static function empty(): self
@@ -82,7 +78,7 @@ class BitString implements \Stringable
     {
         $this->checkRange($n);
 
-        return ($this->array[(int)($n / 8) | 0] & (1 << (7 - ($n % 8)))) > 0;
+        return ($this->array->fGet((int)($n / 8) | 0) & (1 << (7 - ($n % 8)))) > 0;
     }
 
     /**
@@ -93,7 +89,9 @@ class BitString implements \Stringable
     public function on(int $n): void
     {
         $this->checkRange($n);
-        $this->array[(int)($n / 8) | 0] |= 1 << (7 - ($n % 8));
+        $key = (int)($n / 8) | 0;
+        $cV = $this->array->fGet($key);
+        $this->array->fSet($key, $cV | 1 << (7 - ($n % 8)));
         $this->invalidateCell();
     }
 
@@ -105,7 +103,9 @@ class BitString implements \Stringable
     public function off(int $n): void
     {
         $this->checkRange($n);
-        $this->array[(int)($n / 8) | 0] &= ~(1 << (7 - ($n % 8)));
+        $key = (int)($n / 8) | 0;
+        $cV = $this->array->fGet($key);
+        $this->array->fSet($key, $cV & ~(1 << (7 - ($n % 8))));
         $this->invalidateCell();
     }
 
@@ -117,7 +117,9 @@ class BitString implements \Stringable
     public function toggle(int $n): void
     {
         $this->checkRange($n);
-        $this->array[(int)($n / 8) | 0] ^= 1 << (7 - ($n % 8));
+        $key = (int)($n / 8) | 0;
+        $cV = $this->array->fGet($key);
+        $this->array->fSet($key, $cV ^ 1 << (7 - ($n % 8)));
         $this->invalidateCell();
     }
 
@@ -281,7 +283,14 @@ class BitString implements \Stringable
      */
     public function writeString(string $value): self
     {
-        return $this->writeBytes(new Uint8Array(array_values(unpack('C*', $value))));
+        $values = array_values(unpack('C*', $value));
+        $arr = new Uint8Array(count($values));
+
+        foreach ($values as $i => $v) {
+            $arr->fSet($i, $v);
+        }
+
+        return $this->writeBytes($arr);
     }
 
     /**
@@ -543,7 +552,10 @@ class BitString implements \Stringable
         $bitString->length = $newLength;
         $tmpArr = $bitString->array;
         $bitString->array = new Uint8Array(self::getUint8ArrayLength($newLength));
-        $bitString->array->set($tmpArr);
+
+        for ($i = 0; $i < $tmpArr->length; $i++) {
+            $bitString->array->fSet($i, $tmpArr->fGet($i));
+        }
 
         return $bitString;
     }

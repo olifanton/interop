@@ -47,6 +47,16 @@ class Slice
         return $this->usedBits - $this->readCursor;
     }
 
+    public function getFreeBytes(): int
+    {
+        return (int)ceil($this->getFreeBits() / 8);
+    }
+
+    public function getReadBytes(): int
+    {
+        return (int)ceil($this->readCursor / 8);
+    }
+
     /**
      * @return Cell[]
      */
@@ -63,7 +73,7 @@ class Slice
     {
         $this->checkRange($n);
 
-        return ($this->array[(int)($n / 8) | 0] & (1 << (7 - ($n % 8)))) > 0;
+        return ($this->array->fGet((int)($n / 8) | 0) & (1 << (7 - ($n % 8)))) > 0;
     }
 
     /**
@@ -79,6 +89,16 @@ class Slice
         $this->readCursor++;
 
         return $result;
+    }
+
+    /**
+     * @return bool
+     * @throws SliceException
+     * @phpstan-impure
+     */
+    public function preloadBit(): bool
+    {
+        return $this->get($this->readCursor);
     }
 
     /**
@@ -105,6 +125,27 @@ class Slice
     }
 
     /**
+     * @throws SliceException
+     * @phpstan-impure
+     */
+    public function preloadBits(int $bitLength): Uint8Array
+    {
+        $result = new BitString($bitLength);
+
+        try {
+            for ($i = 0; $i < $bitLength; $i++) {
+                $result->writeBit($this->get($this->readCursor + $i));
+            }
+            // @codeCoverageIgnoreStart
+        } catch (BitStringException $e) {
+            throw new SliceException($e->getMessage(), $e->getCode(), $e);
+        }
+        // @codeCoverageIgnoreEnd
+
+        return $result->getImmutableArray();
+    }
+
+    /**
      * Reads unsigned integer
      *
      * @throws SliceException
@@ -120,6 +161,25 @@ class Slice
 
         for ($i = 0; $i < $bitLength; $i++) {
             $s .= ($this->loadBit() ? "1" : "0");
+        }
+
+        return BigInteger::fromBase($s, 2);
+    }
+
+    /**
+     * @throws SliceException
+     * @phpstan-impure
+     */
+    public function preloadUint(int $bitLength): BigInteger
+    {
+        if ($bitLength < 1) {
+            throw new SliceException("Incorrect bitLength: $bitLength");
+        }
+
+        $s = "";
+
+        for ($i = 0; $i < $bitLength; $i++) {
+            $s .= ($this->get($this->readCursor + $i) ? "1" : "0");
         }
 
         return BigInteger::fromBase($s, 2);
@@ -230,6 +290,19 @@ class Slice
         $this->refCursor++;
 
         return $result;
+    }
+
+    /**
+     * @throws SliceException
+     * @phpstan-impure
+     */
+    public function loadMaybeRef(): ?Cell
+    {
+        if ($this->loadBit()) {
+            return $this->loadRef();
+        }
+
+        return null;
     }
 
     /**

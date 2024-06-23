@@ -223,7 +223,7 @@ class Builder
 
     public function writeRef(Cell $cell): self
     {
-        if (count($cell->refs) === 4) {
+        if (count($this->cell->refs) === 4) { // @phpstan-ignore-line
             throw new \RuntimeException("Refs overflow");
         }
 

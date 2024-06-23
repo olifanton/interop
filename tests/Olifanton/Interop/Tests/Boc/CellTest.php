@@ -320,4 +320,73 @@ class CellTest extends TestCase
         $h2 = Bytes::bytesToHexString($cell->hash());;
         $this->assertNotEquals($h1, $h2);
     }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testFromBocWithHashes(): void
+    {
+        // https://github.com/tonkeeper/tongo/tree/b199665da34dd8ff8b51fa51c2d90f2f2dbf82b8/tlb/testdata/block-1
+        $b64Boc = trim(file_get_contents(STUB_DATA_DIR . "/boc/block1.base64.txt"));
+        //$expectedData = json_decode(trim(file_get_contents(STUB_DATA_DIR . "/boc/block1.expected.json")), true);
+
+        $cell = Cell::oneFromBoc($b64Boc, isBase64: true);
+        $slice = $cell->beginParse();
+
+        $this->assertEquals("11ef55aa", $slice->loadUint(32)->toBase(16));
+
+        $globalId = $slice->loadInt(32)->toInt();
+        $this->assertEquals(-239, $globalId);
+
+        $blockInfo = $slice->loadRef()->beginParse();
+        $this->assertEquals("9bc7a987", $blockInfo->loadUint(32)->toBase(16));
+
+        $valueFlow = $slice->loadRef()->beginParse();
+        $sumType = $valueFlow->loadUint(32)->toBase(16);
+
+        $this->assertTrue(
+            in_array(
+                $sumType,
+                [
+                    "b8e48dfb",
+                    "3ebf98b7",
+                ],
+                true,
+            ),
+        );
+
+        // stateUpdate
+        $slice->skipRef();
+
+        //
+        $blockExtra = $slice->loadRef();
+        $blockExtraReader = $blockExtra->beginParse();
+        $this->assertEquals("4a33f6fd", $blockExtraReader->loadUint(32)->toBase(16));
+
+        /** @var Cell $inMsgDescrCell */
+        $inMsgDescrCell = $blockExtra->refs[0];
+        /** @var Cell $outMsgDescrCell */
+        $outMsgDescrCell = $blockExtra->refs[1];
+
+        $inMsgDict = $inMsgDescrCell->beginParse()->loadDict(256);
+
+        $inMsgCount = 0;
+        foreach ($inMsgDict->getIterator() as $inMsg) {
+            $inMsgCount++;
+        }
+
+        $this->assertEquals(329, $inMsgCount);
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function testWithMerkleProof(): void
+    {
+        $boc = "b5ee9c7201021c010004260003b5792fb2fb7884d2a79f8e5b1279264597682fd7e56cf3ccfebea767db7173526f100000a2261348e01ab0389959f7f3c33161c3e4bf3a5901c38958667d64b5603ea04397c1d44279400000a1f24f06c056453860b0003476245d680102030201e00405008272d96846fe22c11b2cbc067eea6a82f1b332efa12da7070d4e90ee6c9bd56388009f339073f094314d4a2b696c2face70a1a07882e875bd28aa243d0a0538e291002110cae650619760604401a1b01df880125f65f6f109a54f3f1cb624f24c8b2ed05fafcad9e799fd7d4ecfb6e2e6a4de2044942e0fdde60708999830ca7800441f5cc83bdacc4b308ea56a28d39cd0d82e2c8ecfd45ccaf81a95d04b896c13c3583a8dcabf41812ba9d50018e917836c81000000003229c3178000000d01c060101df07018032000f1e41cb30becd660a374c510bcd742b99682d17958ca64e1f9d598b6ae48f65202faf080000000000000000000000000000419d5d4d00000000000000000801cf280125f65f6f109a54f3f1cb624f24c8b2ed05fafcad9e799fd7d4ecfb6e2e6a4de300078f20e5985f66b3051ba62885e6ba15ccb4168bcac653270fceacc5b57247b29017d7840070eb8b0678525200001444c2691c04c8a70c1620ceaea68000000000000000400809460329fe4b78e00eea1a217eb3fe13cddfedab08022cf926f82a08343cff3be3342e0008092201200a0b284801018eeca88229bd7b563d72ba57749cd8c63f8efa7d47f3e4f74bc7c51847ec45be00072201200c0d2201200e0f28480101fe18b21f54a2802d6fef56513063a78c4af471bf0e24c31e00793949c91aac39000622012010112848010155cdeed7850ef4313f673c311f5c39bec3c161940c0a71cadde5a031f7db13a7000528480101b988fbf55f0ef7e992d36862abf33933601f50e1eb72c71762d5225bb843c87e0004220120121328480101960d9b2f2590c46bca66ac776d6048598c153f8cf05c980a1042e8003f24928300032201201415284801016604e5bef768c9ed879cdb892c0cf2076208d4d4a41b3aecec00b045eefb6c530002220120161722012018192848010155fae57e9a2b8351802cb998e175e2b93b3dc247592edb1901d07d0097902140000128480101f142b2da4d0e106b131f3640bd8f3cad72b53a3d6153c668fe75db1de12ec1ff0000008118f1e3ac53631fcb4844506477b86e3fffbef1c88e09633956a96a6112ff7d612513ceba691b3a6a0a29131524aa081cdc20820a40cb3ae22b01445499b7618c20009d417f03138800000000000000000e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020006fc9f0ccf44c78519c000000000002000000000002c3a7bf1a1987b4997fd6e16077ca4c5a9c62dd0bde5c7cd809ef35f2cbfaf24444d07b1c";
+        $cell = Cell::oneFromBoc($boc);
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage("Hash calculation for Merkle proof / Merkle update cells currently not supported");
+        $cell->hash();
+    }
 }
