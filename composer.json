@@ -36,7 +36,7 @@
     "ext-mbstring": "*",
     "olifanton/typed-arrays": "^1.0.1",
     "myclabs/deep-copy": "^1.11",
-    "brick/math": "^0.10"
+    "brick/math": ">=0.10"
   },
   "suggest": {
     "ext-bcmath": "*",
@@ -51,7 +51,7 @@
   },
   "scripts": {
     "test": "XDEBUG_MODE=coverage phpunit",
-    "test:cr": "XDEBUG_MODE=coverage phpunit --coverage-html build",
+    "test:cr": "XDEBUG_MODE=coverage phpunit --coverage-html build/coverage-unit",
     "phplint": "phplint -c .phplint.yml",
     "phpstan": "XDEBUG_MODE=off phpstan analyse -c phpstan.neon --ansi --xdebug",
     "checks": [
