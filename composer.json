@@ -34,7 +34,7 @@
   "require": {
     "php": ">=8.1",
     "ext-mbstring": "*",
-    "olifanton/typed-arrays": "^1.0.1",
+    "olifanton/typed-arrays": "^1.0.2",
     "myclabs/deep-copy": "^1.11",
     "brick/math": ">=0.10"
   },
@@ -45,7 +45,7 @@
   },
   "require-dev": {
     "jetbrains/phpstorm-attributes": "^1.0",
-    "overtrue/phplint": "^9.0",
+    "overtrue/phplint": "9.3.1",
     "phpstan/phpstan": "^1.10",
     "phpunit/phpunit": "^9.5"
   },
