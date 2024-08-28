@@ -153,21 +153,23 @@ class Address implements \Stringable
         return $addressBase64;
     }
 
-    public function asWallet(): string
+    public function asWallet(bool $isTestOnly = false): string
     {
         return $this->toString(
             isUserFriendly: true,
             isUrlSafe: true,
             isBounceable: false,
+            isTestOnly: $isTestOnly,
         );
     }
 
-    public function asContract(): string
+    public function asContract(bool $isTestOnly = false): string
     {
         return $this->toString(
             isUserFriendly: true,
             isUrlSafe: true,
             isBounceable: true,
+            isTestOnly: $isTestOnly,
         );
     }
 

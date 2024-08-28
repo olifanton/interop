@@ -119,4 +119,36 @@ class AddressTest extends TestCase
             Bytes::bytesToHexString($addr->getHashPart()),
         );
     }
+
+    public function testAsWallet(): void
+    {
+        $this->assertEquals(
+            "UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ",
+            (new Address("0:0000000000000000000000000000000000000000000000000000000000000000"))->asWallet(),
+        );
+    }
+
+    public function testAsWalletTestnet(): void
+    {
+        $this->assertEquals(
+            "0QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACkT",
+            (new Address("0:0000000000000000000000000000000000000000000000000000000000000000"))->asWallet(isTestOnly: true),
+        );
+    }
+
+    public function testAsContract(): void
+    {
+        $this->assertEquals(
+            "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c",
+            (new Address("0:0000000000000000000000000000000000000000000000000000000000000000"))->asContract(),
+        );
+    }
+
+    public function testAsContractTestnet(): void
+    {
+        $this->assertEquals(
+            "kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHTW",
+            (new Address("0:0000000000000000000000000000000000000000000000000000000000000000"))->asContract(isTestOnly: true),
+        );
+    }
 }
