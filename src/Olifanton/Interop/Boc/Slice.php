@@ -312,7 +312,7 @@ class Slice
     public function loadString(?int $bytes = null): string
     {
         $bytes = $bytes === null
-            ? $this->loadBits($this->length)
+            ? $this->loadBits($this->getFreeBits())
             : $this->loadBits($bytes);
 
         return trim(Bytes::arrayToBytes($bytes), "\0");
